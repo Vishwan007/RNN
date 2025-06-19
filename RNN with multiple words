@@ -1,0 +1,37 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Embedding, SimpleRNN, Dense
+# 1. Text & Mapping
+txt = "hello how are you"
+chars = sorted(set(txt))
+c2i = {c:i for i,c in enumerate(chars)}
+i2c = {i:c for c,i in c2i.items()}
+# 2. Sequences
+seq_len = 10
+inputs, targets = [], []
+for i in range(len(txt)-seq_len):
+seq_in = txt[i:i+seq_len]
+seq_out = txt[i+1:i+seq_len+1]
+inputs.append([c2i[c] for c in seq_in])
+targets.append([c2i[c] for c in seq_out])
+X = np.array(inputs)
+y = np.array(targets)
+# 3. Model
+vocab = len(chars)
+inp = Input((seq_len,))
+x = Embedding(vocab,16)(inp)
+x = SimpleRNN(64, return_sequences=True)(x)
+out = Dense(vocab, activation='softmax')(x)
+model = Model(inp, out)
+model.compile('adam', 'sparse_categorical_crossentropy')
+# 4. Train & Generate
+model.fit(X, y, epochs=200, verbose=0)
+def gen(txt_in, length=50):
+seq = [c2i[c] for c in txt_in]
+for _ in range(length):
+pad = np.array(seq[-seq_len:]).reshape(1,-1)
+p = model.predict(pad, verbose=0)[0,-1]
+seq.append(np.argmax(p))
+return ''.join(i2c[i] for i in seq)
+print(gen("hello how "))
