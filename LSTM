@@ -1,0 +1,48 @@
+import numpy as np
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.utils import to_categorical
+
+# Sample text data
+text = "hello world"
+
+# Step 1: Create character mappings
+chars = sorted(set(text))
+char_to_idx = {ch: i for i, ch in enumerate(chars)}
+idx_to_char = {i: ch for ch, i in char_to_idx.items()}
+vocab_size = len(chars)
+
+# Step 2: Create input-output sequences
+seq_length = 3
+X = []
+y = []
+
+for i in range(len(text) - seq_length):
+    input_seq = text[i:i + seq_length]
+    output_char = text[i + seq_length]
+    X.append([char_to_idx[ch] for ch in input_seq])
+    y.append(char_to_idx[output_char])
+
+# Step 3: Preprocess data
+X = np.array(X)
+y = to_categorical(y, num_classes=vocab_size)
+
+# Reshape X for LSTM: (samples, time steps, features)
+X = X.reshape((X.shape[0], X.shape[1], 1)) / float(vocab_size)
+
+# Step 4: Define the model
+model = Sequential()
+model.add(LSTM(50, input_shape=(seq_length, 1)))
+model.add(Dense(vocab_size, activation='softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+# Step 5: Train the model
+model.fit(X, y, epochs=500, verbose=0)
+
+# Step 6: Predict next character
+seed_text = "llo"
+input_seq = np.array([char_to_idx[ch] for ch in seed_text]).reshape((1, seq_length, 1)) / float(vocab_size)
+predicted_index = np.argmax(model.predict(input_seq, verbose=0))
+predicted_char = idx_to_char[predicted_index]
+
+print(f"Input: '{seed_text}' → Predicted next character: '{predicted_char}'")
