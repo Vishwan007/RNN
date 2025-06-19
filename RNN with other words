@@ -1,0 +1,24 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+# 1. Word mapping
+words = ["hello","how","are","you"]
+w2i = {w:i for i,w in enumerate(words)}
+i2w = {i:w for w,i in w2i.items()}
+# 2. Sequence: hello how are → how are you
+in_seq = [w2i[w] for w in ["hello","how","are"]]
+out_seq = [w2i[w] for w in ["how","are","you"]]
+X = np.array(in_seq).reshape(1,-1)
+y = np.array(out_seq).reshape(1,-1)
+# 3. Model
+model = Sequential([
+Embedding(len(words), 8, input_length=3),
+SimpleRNN(16, return_sequences=True),
+Dense(len(words), activation='softmax')
+])
+model.compile('adam','sparse_categorical_crossentropy')
+model.fit(X, y, epochs=200, verbose=0)
+# 4. Predict
+pred = model.predict(X, verbose=0)
+print([[i2w[np.argmax(step)] for step in seq] for seq in pred])
