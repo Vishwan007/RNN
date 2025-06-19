@@ -1,0 +1,70 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, Bidirectional, SimpleRNN, Dense
+# 1. Training Text & Character Mapping
+training_text = "hello how are you doing today? this is an advanced rnn example."
+chars = sorted(set(training_text))
+char_to_idx = {ch: i for i, ch in enumerate(chars)}
+idx_to_char = {i: ch for ch, i in char_to_idx.items()}
+vocab_size = len(chars)
+# 2. Prepare Sequence Data (windows)
+sequence_length = 10
+step = 1
+input_sequences = []
+target_sequences = []
+for i in range(0, len(training_text) - sequence_length, step):
+input_chunk = training_text[i : i + sequence_length]
+target_chunk = training_text[i + 1 : i + sequence_length + 1]
+input_sequences.append([char_to_idx[ch] for ch in input_chunk])
+target_sequences.append([char_to_idx[ch] for ch in target_chunk])
+X = np.array(input_sequences) y = np.array(target_sequences) # shape: (num_samples, sequence_length)
+# shape: (num_samples, sequence_length)
+# 3. Build the Model
+embedding_dim = 32
+rnn_units_1 = 64
+rnn_units_2 = 64
+model = Sequential([
+Embedding(input_dim=vocab_size, output_dim=embedding_dim,
+input_length=sequence_length),
+Bidirectional(SimpleRNN(units=rnn_units_1, return_sequences=True)),
+SimpleRNN(units=rnn_units_2, return_sequences=True),
+Dense(vocab_size, activation='softmax')
+])
+model.compile(
+optimizer='adam',
+loss='sparse_categorical_crossentropy'
+)
+model.summary()
+# 4. Train the Model
+epochs = 100
+batch_size = 128
+model.fit(
+X,
+y,
+batch_size=batch_size,
+epochs=epochs,
+validation_split=0.1,
+verbose=2
+)
+# 5. Sequence Generation Function
+def generate_sequence(start_text, gen_length=100):
+# convert seed text to indices
+generated_indices = [char_to_idx.get(ch, 0) for ch in start_text]
+for _ in range(gen_length):
+# prepare last sequence_length inputs
+seq = generated_indices[-sequence_length:]
+if len(seq) < sequence_length:
+# pad with zeros on the left if needed
+seq = [0] * (sequence_length - len(seq)) + seq
+inp = np.array(seq).reshape(1, sequence_length)
+# predict next char distribution
+preds = model.predict(inp, verbose=0)
+next_idx = np.argmax(preds[0, -1])
+generated_indices.append(next_idx)
+# convert indices back to characters
+return ''.join(idx_to_char[i] for i in generated_indices)
+# 6. Run Generation & Print
+seed = "hello how "
+generated = generate_sequence(seed, gen_length=200)
+print("\n Generated text:\n" + generated)
