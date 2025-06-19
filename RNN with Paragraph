@@ -1,0 +1,33 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+para = ("deep learning enables models to learn hierarchical "
+"representations of data for tasks like translation and vision")
+chars = sorted(set(para))
+c2i = {c:i for i,c in enumerate(chars)}
+i2c = {i:c for c,i in c2i.items()}
+L, step = 40, 3
+X, y = [], []
+for i in range(0, len(para)-L, step):
+X.append([c2i[c] for c in para[i:i+L]])
+y.append([c2i[c] for c in para[i+1:i+L+1]])
+X, y = np.array(X), np.array(y)
+model = Sequential([
+Embedding(len(chars), 32, input_length=L),
+SimpleRNN(128, return_sequences=True),
+Dense(len(chars), activation='softmax')
+])
+model.compile('adam', 'sparse_categorical_crossentropy')
+model.fit(X, y, epochs=50, batch_size=64, verbose=2)
+def gen(seed, length=100):
+seq = [c2i.get(c,0) for c in seed]
+for _ in range(length):
+window = seq[-L:]
+if len(window) < L:
+window = [0]*(L - len(window)) + window
+inp = np.array(window).reshape(1, L)
+p = model.predict(inp, verbose=0)
+seq.append(int(np.argmax(p[0, -1])))
+return ''.join(i2c[i] for i in seq)
+print(gen(para[:10], 200))
