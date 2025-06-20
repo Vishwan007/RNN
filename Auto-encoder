@@ -1,0 +1,30 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.datasets import mnist
+(x_train, _), (x_test, _) = mnist.load_data()
+x_train = x_train.reshape(-1, 784) / 255.
+x_test = x_test.reshape(-1, 784) / 255.
+inp = Input((784,))
+encoded = Dense(64, activation='relu')(inp)
+decoded = Dense(784, activation='sigmoid')(encoded)
+auto = Model(inp, decoded)
+auto.compile('adam', 'mse')
+auto.fit(x_train, x_train, epochs=20, batch_size=256, validation_split=0.1, verbose=2)
+# Predict
+decoded_imgs = auto.predict(x_test)
+# Display original and reconstruction
+n = 10
+plt.figure(figsize=(20, 4))
+for i in range(n):
+# Original
+ax = plt.subplot(2, n, i + 1)
+plt.imshow(x_test[i].reshape(28, 28), cmap="gray")
+plt.axis("off")
+# Reconstructed
+ax = plt.subplot(2, n, i + 1 + n)
+plt.imshow(decoded_imgs[i].reshape(28, 28), cmap="gray")
+plt.axis("off")
+plt.show()
